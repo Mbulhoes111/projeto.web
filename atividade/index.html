@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Plantio</title>
+    <style>
+        table, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <input type="text" id="filter" placeholder="Filtro">
+        <button onclick="pesquisar()">Pesquisar</button>
+        <button onclick="cadastrar()">Cadastrar</button>
+    </div>
+    <br>
+    <table>
+        <thead>
+            <tr>
+                <th>Espécie</th>
+                <th>Data do plantio</th>
+                <th>ID</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody id="registros">
+            
+        </tbody>
+    </table>
+    <br>
+    <div>
+        <h3>Cadastro - Com campos preenchidos</h3>
+        <input type="hidden" id="registroId">
+        <label for="especie">Espécie: </label><input type="text" id="especie"><br><br>
+        <label for="dataPlantio">Data de plantio: </label><input type="text" id="dataPlantio"><br><br>
+        <button onclick="alterar()">Alterar</button>
+        <button onclick="remover()">Remover</button>
+    </div>
+
+    <script>
+        const apiBaseUrl = 'http://localhost:8080/registros';
+
+        function carregarRegistros() {
+            fetch(apiBaseUrl)
+                .then(response => response.json())
+                .then(data => {
+                    const registros = document.getElementById('registros');
+                    registros.innerHTML = '';
+                    data.forEach(registro => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${registro.especie}</td>
+                            <td>${registro.dataPlantio}</td>
+                            <td>${registro.id}</td>
+                            <td>
+                                <button onclick="editarRegistro('${registro.id}')">Editar</button>
+                            </td>
+                        `;
+                        registros.appendChild(row);
+                    });
+                });
+        }
+
+        function cadastrar() {
+            const especie = document.getElementById('especie').value;
+            const dataPlantio = document.getElementById('dataPlantio').value;
+            fetch(apiBaseUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ especie, dataPlantio })
+            }).then(() => carregarRegistros());
+        }
+
+        function editarRegistro(id) {
+            fetch(`${apiBaseUrl}/${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('registroId').value = data.id;
+                    document.getElementById('especie').value = data.especie;
+                    document.getElementById('dataPlantio').value = data.dataPlantio;
+                });
+        }
+
+        function alterar() {
+            const id = document.getElementById('registroId').value;
+            const especie = document.getElementById('especie').value;
+            const dataPlantio = document.getElementById('dataPlantio').value;
+            fetch(`${apiBaseUrl}/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ especie, dataPlantio })
+            }).then(() => carregarRegistros());
+        }
+
+        function remover() {
+            const id = document.getElementById('registroId').value;
+            fetch(`${apiBaseUrl}/${id}`, {
+                method: 'DELETE'
+            }).then(() => carregarRegistros());
+        }
+
+        function pesquisar() {
+            const filtro = document.getElementById('filter').value.toLowerCase();
+            const registros = document.querySelectorAll('#registros tr');
+            registros.forEach(row => {
+                const especie = row.cells[0].innerText.toLowerCase();
+                if (especie.includes(filtro)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        window.onload = carregarRegistros;
+    </script>
+</body>
+</html>
